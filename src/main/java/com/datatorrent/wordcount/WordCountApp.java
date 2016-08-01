@@ -1,12 +1,15 @@
 package com.datatorrent.wordcount;
 
-import org.apache.apex.malhar.lib.fs.LineByLineFileInputOperator;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.hadoop.conf.Configuration;
 
+import com.datatorrent.api.Context;
 import com.datatorrent.api.DAG;
+import com.datatorrent.api.StatsListener;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
-import com.datatorrent.lib.io.ConsoleOutputOperator;
 
 @ApplicationAnnotation(name = "WordCountApp")
 public class WordCountApp implements StreamingApplication
@@ -14,11 +17,11 @@ public class WordCountApp implements StreamingApplication
   @Override
   public void populateDAG(DAG dag, Configuration conf)
   {
-    LineByLineFileInputOperator reader = dag.addOperator("Reader", new LineByLineFileInputOperator());
-    reader.setScanner(new MyScanner());
-
-    ConsoleOutputOperator console = dag.addOperator("Console", new ConsoleOutputOperator());
-
-    dag.addStream("s1", reader.output, console.input).setLocality(DAG.Locality.THREAD_LOCAL);
+    dag.setAttribute(Context.DAGContext.DEBUG, true);
+    FileMonitorOperator monitor = dag.addOperator("Monitor", new FileMonitorOperator());
+    monitor.setPathStr("/user/hadoop/data");
+    List<StatsListener> listeners = new ArrayList<>();
+    listeners.add(new FileStatListener());
+    dag.getMeta(monitor).getAttributes().put(Context.OperatorContext.STATS_LISTENERS, listeners);
   }
 }

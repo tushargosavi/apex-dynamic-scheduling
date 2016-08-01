@@ -20,6 +20,10 @@
 
 -->
 <configuration>
+  <property>
+    <name>dt.loggers.level</name>
+    <value>com.datatorrent.*:DEBUG,org.apache.hadoop.*:INFO</value>
+  </property>
   <!-- Memory settings for all demos -->
   <property>
     <name>dt.attr.MASTER_MEMORY_MB</name>
