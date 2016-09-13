@@ -2,33 +2,33 @@ package com.datatorrent.wordcount;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.apex.malhar.lib.fs.LineByLineFileInputOperator;
-
-import com.datatorrent.api.Context;
-import com.datatorrent.api.DAG;
 import com.datatorrent.api.Operator;
 import com.datatorrent.api.Stats;
 import com.datatorrent.api.StatsListener;
 import com.datatorrent.lib.algo.UniqueCounter;
 import com.datatorrent.lib.io.ConsoleOutputOperator;
-import com.datatorrent.stram.plan.logical.mod.DAGChangeSet;
+import com.datatorrent.stram.plan.logical.mod.DAGChangeSetImpl;
 
-public class FileStatListenerSameDag implements StatsListener, Serializable
+public class FileStatListenerSameDag implements StatsListener, StatsListener.ContextAwareStatsListener, Serializable
 {
   private static final Logger LOG = LoggerFactory.getLogger(FileStatListenerSameDag.class);
+  private transient StatsListenerContext context;
 
   public FileStatListenerSameDag() { }
 
-  DAGChangeSet getWordCountDag()
+  @Override
+  public void setContext(StatsListenerContext context)
   {
-    DAGChangeSet dag = new DAGChangeSet();
+    this.context = context;
+  }
+
+  DAGChangeSetImpl getWordCountDag()
+  {
+    DAGChangeSetImpl dag = (DAGChangeSetImpl)context.createDAG();
     LineSplitter splitter = dag.addOperator("Splitter", new LineSplitter());
     UniqueCounter<String> counter = dag.addOperator("Counter", new UniqueCounter<String>());
     ConsoleOutputOperator out = dag.addOperator("Output", new ConsoleOutputOperator());
@@ -39,9 +39,9 @@ public class FileStatListenerSameDag implements StatsListener, Serializable
     return dag;
   }
 
-  DAGChangeSet undeployDag()
+  DAGChangeSetImpl undeployDag()
   {
-    DAGChangeSet dag = new DAGChangeSet();
+    DAGChangeSetImpl dag = new DAGChangeSetImpl();
     for (String s : new String[]{"s1", "s2", "s3"}) {
       dag.removeStream(s);
     }
@@ -59,9 +59,14 @@ public class FileStatListenerSameDag implements StatsListener, Serializable
   @Override
   public Response processStats(BatchedOperatorStats stats)
   {
-    LOG.info("stats received for name {} id {} cwid {}", stats.getOperatorName(), stats.getOperatorId(), stats.getCurrentWindowId());
+    if (context == null) {
+      LOG.info("context is null");
+    }
 
-    if (stats.getOperatorName().equals("Reader")) {
+    String operatorName = context.getOperatorName(stats.getOperatorId());
+    LOG.info("stats received for name {} id {} cwid {}", operatorName, stats.getOperatorId(), stats.getCurrentWindowId());
+
+    if (operatorName.equals("Reader")) {
       counter++;
       for (Stats.OperatorStats ws : stats.getLastWindowedStats()) {
         Integer value = (Integer)ws.metrics.get("pendingFiles");
@@ -69,7 +74,7 @@ public class FileStatListenerSameDag implements StatsListener, Serializable
         if (value != null && value > 10 && !dagStarted && counter > 40) {
           dagStarted = true;
           Response resp = new Response();
-          resp.dag = getWordCountDag();
+          resp.dagChanges = getWordCountDag();
           counter = 0;
           idleWindows = 0;
           return resp;
@@ -80,14 +85,15 @@ public class FileStatListenerSameDag implements StatsListener, Serializable
           dagDeployed = true;
         }
 
+        /*
         if (stats.getTuplesEmittedPSMA() == 0 && dagDeployed) {
           idleWindows++;
           LOG.info("Reader idle window found {}", idleWindows);
           if (idleWindows >= 120) {
-            LOG.info("No data read for last {} windows, removing dag", idleWindows);
+            LOG.info("No data read for last {} windows, removing dagChanges", idleWindows);
             Response resp = new Response();
             idleWindows = 0;
-            resp.dag = undeployDag();
+            resp.dagChanges = undeployDag();
             dagDeployed = false;
             dagStarted = false;
             return resp;
@@ -95,6 +101,7 @@ public class FileStatListenerSameDag implements StatsListener, Serializable
         } else {
           idleWindows = 0;
         }
+        */
       }
     }
     return null;

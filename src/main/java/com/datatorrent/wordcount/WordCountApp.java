@@ -1,7 +1,6 @@
 package com.datatorrent.wordcount;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 
 import org.apache.hadoop.conf.Configuration;
 
@@ -20,8 +19,7 @@ public class WordCountApp implements StreamingApplication
     dag.setAttribute(Context.DAGContext.DEBUG, true);
     FileMonitorOperator monitor = dag.addOperator("Monitor", new FileMonitorOperator());
     monitor.setPathStr("/user/hadoop/data");
-    List<StatsListener> listeners = new ArrayList<>();
-    listeners.add(new FileStatListener());
-    dag.getMeta(monitor).getAttributes().put(Context.OperatorContext.STATS_LISTENERS, listeners);
+    dag.getMeta(monitor).getAttributes().put(Context.OperatorContext.STATS_LISTENERS,
+      Arrays.<StatsListener>asList(new FileStatListener()));
   }
 }

@@ -9,7 +9,7 @@ public class FileReaderOperator extends LineByLineFileInputOperator
 {
   @AutoMetric
   private int pendingFiles;
-  private Context.OperatorContext context;
+  private transient Context.OperatorContext context;
 
   @Override
   public void emitTuples()

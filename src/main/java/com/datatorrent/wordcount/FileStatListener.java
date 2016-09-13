@@ -16,17 +16,24 @@ import com.datatorrent.api.Stats;
 import com.datatorrent.api.StatsListener;
 import com.datatorrent.lib.algo.UniqueCounter;
 import com.datatorrent.lib.io.ConsoleOutputOperator;
-import com.datatorrent.stram.plan.logical.mod.DAGChangeSet;
+import com.datatorrent.stram.plan.logical.mod.DAGChangeSetImpl;
 
-public class FileStatListener implements StatsListener, Serializable
+public class FileStatListener implements StatsListener, StatsListener.ContextAwareStatsListener, Serializable
 {
   private static final Logger LOG = LoggerFactory.getLogger(FileStatListener.class);
+  private transient StatsListenerContext context;
 
   public FileStatListener() { }
 
-  DAGChangeSet getWordCountDag()
+  @Override
+  public void setContext(StatsListenerContext context)
   {
-    DAGChangeSet dag = new DAGChangeSet();
+    this.context = context;
+  }
+
+  DAGChangeSetImpl getWordCountDag()
+  {
+    DAGChangeSetImpl dag = (DAGChangeSetImpl)context.createDAG();
     LineByLineFileInputOperator reader = dag.addOperator("Reader", new LineByLineFileInputOperator());
     List<StatsListener> listeners = new ArrayList<>();
     listeners.add(this);
@@ -41,9 +48,9 @@ public class FileStatListener implements StatsListener, Serializable
     return dag;
   }
 
-  DAGChangeSet undeployDag()
+  DAGChangeSetImpl undeployDag()
   {
-    DAGChangeSet dag = new DAGChangeSet();
+    DAGChangeSetImpl dag = new DAGChangeSetImpl();
     dag.removeStream("s3");
     dag.removeOperator("Output");
     dag.removeStream("s2");
@@ -61,9 +68,18 @@ public class FileStatListener implements StatsListener, Serializable
   @Override
   public Response processStats(BatchedOperatorStats stats)
   {
-    LOG.info("stats received for name {} id {} cwid {}", stats.getOperatorName(), stats.getOperatorId(), stats.getCurrentWindowId());
+    String name = context.getOperatorName(stats.getOperatorId());
 
-    if (stats.getOperatorName().equals("Monitor")) {
+    /** If operator is removed dynamically from DAG while stat listener is being called
+     * on old accumulated stats.
+     */
+    if (name == null) {
+      return null;
+    }
+
+    LOG.info("stats received for name {} id {} cwid {}", name, stats.getOperatorId(), stats.getCurrentWindowId());
+
+    if (name.equals("Monitor")) {
       counter++;
       for (Stats.OperatorStats ws : stats.getLastWindowedStats()) {
         Integer value = (Integer)ws.metrics.get("pendingFiles");
@@ -71,7 +87,7 @@ public class FileStatListener implements StatsListener, Serializable
         if (value != null && value > 100 && !dagStarted && counter > 40) {
           dagStarted = true;
           Response resp = new Response();
-          resp.dag = getWordCountDag();
+          resp.dagChanges = getWordCountDag();
           counter = 0;
           idleWindows = 0;
           return resp;
@@ -79,15 +95,15 @@ public class FileStatListener implements StatsListener, Serializable
       }
     }
 
-    if (stats.getOperatorName().equals("Reader")) {
+    if (name.equals("Reader")) {
       if (stats.getTuplesEmittedPSMA() == 0) {
         idleWindows++;
         LOG.info("Reader idle window found {}", idleWindows);
         if (idleWindows >= 120) {
-          LOG.info("No data read for last {} windows, removing dag", idleWindows);
+          LOG.info("No data read for last {} windows, removing dagChanges", idleWindows);
           Response resp = new Response();
           idleWindows = 0;
-          resp.dag = undeployDag();
+          resp.dagChanges = undeployDag();
           return resp;
         }
       } else {
