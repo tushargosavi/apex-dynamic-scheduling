@@ -17,8 +17,14 @@ public class FileStatListenerSameDag implements StatsListener, StatsListener.Con
 {
   private static final Logger LOG = LoggerFactory.getLogger(FileStatListenerSameDag.class);
   private transient StatsListenerContext context;
+  private boolean dagStarted = false;
+  private boolean dagDeployed = false;
+  private int counter = 0;
+  private int idleWindows = 0;
 
-  public FileStatListenerSameDag() { }
+  public FileStatListenerSameDag()
+  {
+  }
 
   @Override
   public void setContext(StatsListenerContext context)
@@ -26,7 +32,7 @@ public class FileStatListenerSameDag implements StatsListener, StatsListener.Con
     this.context = context;
   }
 
-  DAGChangeSetImpl getWordCountDag()
+  DAGChangeSetImpl extendWordCountDAG()
   {
     DAGChangeSetImpl dag = (DAGChangeSetImpl)context.createDAG();
     LineSplitter splitter = dag.addOperator("Splitter", new LineSplitter());
@@ -45,16 +51,11 @@ public class FileStatListenerSameDag implements StatsListener, StatsListener.Con
     for (String s : new String[]{"s1", "s2", "s3"}) {
       dag.removeStream(s);
     }
-    for (String opr : new String[]{ "Output", "Counter", "Splitter"}) {
+    for (String opr : new String[]{"Output", "Counter", "Splitter"}) {
       dag.removeOperator(opr);
     }
     return dag;
   }
-
-  private boolean dagStarted = false;
-  private boolean dagDeployed = false;
-  private int counter = 0;
-  private int idleWindows = 0;
 
   @Override
   public Response processStats(BatchedOperatorStats stats)
@@ -71,10 +72,11 @@ public class FileStatListenerSameDag implements StatsListener, StatsListener.Con
       for (Stats.OperatorStats ws : stats.getLastWindowedStats()) {
         Integer value = (Integer)ws.metrics.get("pendingFiles");
         LOG.info("stats received for {} pendingFiles {} counter {}", stats.getOperatorId(), value, counter);
+        /** If new files are detected, and dag is not already started, attach data processing operators */
         if (value != null && value > 10 && !dagStarted && counter > 40) {
           dagStarted = true;
           Response resp = new Response();
-          resp.dagChanges = getWordCountDag();
+          resp.dagChanges = extendWordCountDAG();
           counter = 0;
           idleWindows = 0;
           return resp;
@@ -85,7 +87,9 @@ public class FileStatListenerSameDag implements StatsListener, StatsListener.Con
           dagDeployed = true;
         }
 
-        /*
+        /** IF application is idle for 120 invocation of stats listener,
+         * remove the data processing operators.
+         */
         if (stats.getTuplesEmittedPSMA() == 0 && dagDeployed) {
           idleWindows++;
           LOG.info("Reader idle window found {}", idleWindows);
@@ -101,12 +105,10 @@ public class FileStatListenerSameDag implements StatsListener, StatsListener.Con
         } else {
           idleWindows = 0;
         }
-        */
       }
     }
     return null;
   }
-
 
   static class ResetOperatorRequest implements OperatorRequest
   {
@@ -116,7 +118,7 @@ public class FileStatListenerSameDag implements StatsListener, StatsListener.Con
     public OperatorResponse execute(Operator operator, int operatorId, long windowId) throws IOException
     {
       LOG.info("ResetOperator request called {} id {} windowId {}", operator, operatorId, windowId);
-      FileMonitorOperator fm =  (FileMonitorOperator)operator;
+      FileMonitorOperator fm = (FileMonitorOperator)operator;
       fm.handleCommand();
       return null;
     }

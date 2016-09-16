@@ -22,18 +22,14 @@ import com.datatorrent.stram.plan.physical.PlanModifier;
 
 public class FileMonitorOperator extends BaseOperator implements InputOperator
 {
+  private static final Logger LOG = LoggerFactory.getLogger(PlanModifier.class);
   private String pathStr;
-
   @AutoMetric
   private int pendingFiles;
-
   private transient Timer timer = new Timer();
-
   private long scanInterval = 10000;
-
   private transient Path path;
   private transient FileSystem fs;
-
   /* current state of the scanner */
   private Set<String> seenFiles = new HashSet<>();
   private Set<String> newFiles = new HashSet<>();
@@ -58,25 +54,8 @@ public class FileMonitorOperator extends BaseOperator implements InputOperator
     }
   }
 
-  class ScanTask extends TimerTask
+  public void setDagfinished(int stage)
   {
-    @Override
-    public void run()
-    {
-      try {
-        FileStatus[] files = fs.listStatus(path);
-        for (FileStatus file : files) {
-          if (!seenFiles.contains(file.getPath().getName())) {
-            newFiles.add(file.getPath().getName());
-          }
-        }
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-  }
-
-  public void setDagfinished(int stage) {
     seenFiles.addAll(newFiles);
     newFiles.clear();
   }
@@ -113,6 +92,22 @@ public class FileMonitorOperator extends BaseOperator implements InputOperator
     LOG.info("Handling operator command");
   }
 
-  private static final Logger LOG = LoggerFactory.getLogger(PlanModifier.class);
+  class ScanTask extends TimerTask
+  {
+    @Override
+    public void run()
+    {
+      try {
+        FileStatus[] files = fs.listStatus(path);
+        for (FileStatus file : files) {
+          if (!seenFiles.contains(file.getPath().getName())) {
+            newFiles.add(file.getPath().getName());
+          }
+        }
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
 
 }

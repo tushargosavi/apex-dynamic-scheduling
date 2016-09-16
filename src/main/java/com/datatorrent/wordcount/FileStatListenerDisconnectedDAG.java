@@ -18,12 +18,17 @@ import com.datatorrent.lib.algo.UniqueCounter;
 import com.datatorrent.lib.io.ConsoleOutputOperator;
 import com.datatorrent.stram.plan.logical.mod.DAGChangeSetImpl;
 
-public class FileStatListener implements StatsListener, StatsListener.ContextAwareStatsListener, Serializable
+public class FileStatListenerDisconnectedDAG implements StatsListener, StatsListener.ContextAwareStatsListener, Serializable
 {
-  private static final Logger LOG = LoggerFactory.getLogger(FileStatListener.class);
+  private static final Logger LOG = LoggerFactory.getLogger(FileStatListenerDisconnectedDAG.class);
   private transient StatsListenerContext context;
+  private boolean dagStarted = false;
+  private int counter = 0;
+  private int idleWindows = 0;
 
-  public FileStatListener() { }
+  public FileStatListenerDisconnectedDAG()
+  {
+  }
 
   @Override
   public void setContext(StatsListenerContext context)
@@ -60,10 +65,6 @@ public class FileStatListener implements StatsListener, StatsListener.ContextAwa
     dag.removeOperator("Reader");
     return dag;
   }
-
-  private boolean dagStarted = false;
-  private int counter = 0;
-  private int idleWindows = 0;
 
   @Override
   public Response processStats(BatchedOperatorStats stats)
@@ -113,16 +114,15 @@ public class FileStatListener implements StatsListener, StatsListener.ContextAwa
     return null;
   }
 
-
   static class ResetOperatorRequest implements OperatorRequest
   {
-    private static final Logger LOG = LoggerFactory.getLogger(FileStatListener.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FileStatListenerDisconnectedDAG.class);
 
     @Override
     public OperatorResponse execute(Operator operator, int operatorId, long windowId) throws IOException
     {
       LOG.info("ResetOperator request called {} id {} windowId {}", operator, operatorId, windowId);
-      FileMonitorOperator fm =  (FileMonitorOperator)operator;
+      FileMonitorOperator fm = (FileMonitorOperator)operator;
       fm.handleCommand();
       return null;
     }

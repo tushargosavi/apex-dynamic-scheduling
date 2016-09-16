@@ -1,12 +1,18 @@
 package com.datatorrent.wordcount;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.apex.malhar.lib.fs.LineByLineFileInputOperator;
 
 import com.datatorrent.api.AutoMetric;
 import com.datatorrent.api.Context;
+import com.datatorrent.stram.StreamingContainerParent;
 
 public class FileReaderOperator extends LineByLineFileInputOperator
 {
+  private static final Logger LOG = LoggerFactory.getLogger(StreamingContainerParent.class);
+
   @AutoMetric
   private int pendingFiles;
   private transient Context.OperatorContext context;
@@ -25,6 +31,12 @@ public class FileReaderOperator extends LineByLineFileInputOperator
   {
     super.setup(context);
     this.context = context;
+  }
+
+  @Override
+  public void beginWindow(long windowId)
+  {
+    LOG.info("begin window called {} hex {}", windowId, Long.toHexString(windowId));
   }
 
   @Override
