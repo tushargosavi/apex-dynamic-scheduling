@@ -74,12 +74,16 @@ public class FileStatListenerSameDag implements StatsListener, StatsListener.Con
         LOG.info("stats received for {} pendingFiles {} counter {}", stats.getOperatorId(), value, counter);
         /** If new files are detected, and dag is not already started, attach data processing operators */
         if (value != null && value > 10 && !dagStarted && counter > 40) {
-          dagStarted = true;
-          Response resp = new Response();
-          resp.dagChanges = extendWordCountDAG();
-          counter = 0;
-          idleWindows = 0;
-          return resp;
+          try {
+            dagStarted = true;
+            context.submitDagChange(extendWordCountDAG());
+            counter = 0;
+            idleWindows = 0;
+          } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
         }
 
         if (stats.getTuplesEmittedPSMA() > 0) {
@@ -90,21 +94,25 @@ public class FileStatListenerSameDag implements StatsListener, StatsListener.Con
         /** IF application is idle for 120 invocation of stats listener,
          * remove the data processing operators.
          */
-        if (stats.getTuplesEmittedPSMA() == 0 && dagDeployed) {
-          idleWindows++;
-          LOG.info("Reader idle window found {}", idleWindows);
-          if (idleWindows >= 120) {
-            LOG.info("No data read for last {} windows, removing dagChanges", idleWindows);
-            Response resp = new Response();
-            idleWindows = 0;
-            resp.dagChanges = undeployDag();
-            dagDeployed = false;
-            dagStarted = false;
-            return resp;
-          }
-        } else {
-          idleWindows = 0;
-        }
+//        if (stats.getTuplesEmittedPSMA() == 0 && dagDeployed) {
+//          idleWindows++;
+//          LOG.info("Reader idle window found {}", idleWindows);
+//          if (idleWindows >= 120) {
+//            LOG.info("No data read for last {} windows, removing dagChanges", idleWindows);
+//            try {
+//              idleWindows = 0;
+//              context.submitDagChange(undeployDag());
+//              dagDeployed = false;
+//              dagStarted = false;
+//            } catch (ClassNotFoundException e) {
+//              e.printStackTrace();
+//            } catch (IOException e) {
+//              e.printStackTrace();
+//            }
+//          }
+//        } else {
+//          idleWindows = 0;
+//        }
       }
     }
     return null;

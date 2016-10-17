@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.FutureTask;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,12 +87,14 @@ public class FileStatListenerDisconnectedDAG implements StatsListener, StatsList
         Integer value = (Integer)ws.metrics.get("pendingFiles");
         LOG.info("stats received for {} pendingFiles {} counter {}", stats.getOperatorId(), value, counter);
         if (value != null && value > 100 && !dagStarted && counter > 40) {
-          dagStarted = true;
-          Response resp = new Response();
-          resp.dagChanges = getWordCountDag();
-          counter = 0;
-          idleWindows = 0;
-          return resp;
+          try {
+            dagStarted = true;
+            FutureTask<Object> o = context.submitDagChange(getWordCountDag());
+            counter = 0;
+            idleWindows = 0;
+          } catch (Exception ex) {
+            System.out.println("exception occured while changing dag");
+          }
         }
       }
     }
@@ -102,10 +105,14 @@ public class FileStatListenerDisconnectedDAG implements StatsListener, StatsList
         LOG.info("Reader idle window found {}", idleWindows);
         if (idleWindows >= 120) {
           LOG.info("No data read for last {} windows, removing dagChanges", idleWindows);
-          Response resp = new Response();
-          idleWindows = 0;
-          resp.dagChanges = undeployDag();
-          return resp;
+          try {
+            idleWindows = 0;
+            FutureTask<Object> o = context.submitDagChange(undeployDag());
+          } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
         }
       } else {
         idleWindows = 0;
