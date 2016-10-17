@@ -8,6 +8,9 @@ import com.datatorrent.api.DAG;
 import com.datatorrent.api.StatsListener;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.stram.engine.OperatorContext;
+import com.datatorrent.wordcount.lindag.apps.AppStage1;
+import com.datatorrent.wordcount.lindag.apps.AppStage2;
+import com.datatorrent.wordcount.lindag.apps.AppStage3;
 
 public class DagSchedulingApp implements StreamingApplication
 {
