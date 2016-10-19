@@ -9,18 +9,27 @@ public class DefaultMonitorOperator extends BaseOperator implements Operator.Che
 {
   private int doneItems = 0;
   private int expectedItems = 1;
-
+  private long currentWindowId;
+  private long doneWindowId = 0;
   public transient DefaultInputPort<String> doneIn = new DefaultInputPort<String>()
   {
     @Override
     public void process(String tuple)
     {
-
+      doneItems++;
+      if (doneItems >= expectedItems) {
+        doneWindowId = currentWindowId;
+      }
     }
   };
-
   @AutoMetric
   private Boolean done = false;
+
+  @Override
+  public void beginWindow(long windowId)
+  {
+    currentWindowId = windowId;
+  }
 
   public Boolean getDone()
   {
@@ -43,22 +52,24 @@ public class DefaultMonitorOperator extends BaseOperator implements Operator.Che
   }
 
   @Override
-  public void endWindow()
-  {
-    done = doneItems > expectedItems;
-    super.endWindow();
-  }
-
-  @Override
   public void checkpointed(long windowId)
   {
 
   }
 
+  /**
+   * If the committed is received then we know that all the operatortions are
+   * performed by the DAG. we can issue an shutdown signal to terminate the
+   * app.
+   *
+   * @param windowId
+   */
   @Override
   public void committed(long windowId)
   {
-
+    if (doneWindowId != 0 && windowId > doneWindowId) {
+      done = true;
+    }
   }
 
   @Override

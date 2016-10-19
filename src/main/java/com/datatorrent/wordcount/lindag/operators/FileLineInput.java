@@ -10,9 +10,8 @@ import com.datatorrent.api.DefaultOutputPort;
 
 public class FileLineInput extends LineByLineFileInputOperator
 {
+  public transient DefaultOutputPort<String> doneOut = new DefaultOutputPort<>();
   String fileName;
-
-  public transient DefaultOutputPort<String> done = new DefaultOutputPort<>();
 
   @Override
   protected InputStream openFile(Path path) throws IOException
@@ -25,6 +24,6 @@ public class FileLineInput extends LineByLineFileInputOperator
   protected void closeFile(InputStream is) throws IOException
   {
     super.closeFile(is);
-    done.emit(fileName);
+    doneOut.emit(fileName);
   }
 }

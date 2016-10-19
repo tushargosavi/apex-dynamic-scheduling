@@ -4,6 +4,7 @@ import java.util.Collections;
 
 import org.apache.hadoop.conf.Configuration;
 
+import com.datatorrent.api.Context;
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.StatsListener;
 import com.datatorrent.api.StreamingApplication;
@@ -17,31 +18,32 @@ public class DagSchedulingApp implements StreamingApplication
 
   public static class MyScheduler extends LinearDAGScheduler
   {
+    private Configuration conf;
+
     public MyScheduler(Configuration conf)
     {
       this.conf = conf;
     }
-
-    private Configuration conf;
 
     @Override
     public DAG.DAGChangeSet getNextDAG(int i, DAG.DAGChangeSet dag)
     {
       StreamingApplication app = null;
       switch (i) {
-        case 0 :
+        case 0:
           app = new AppStage1();
           break;
         case 1:
           app = new AppStage2();
           break;
-        case 2 :
+        case 2:
           app = new AppStage3();
           break;
       }
 
-      if (app != null)
+      if (app != null) {
         app.populateDAG(dag, conf);
+      }
 
       return dag;
     }
@@ -50,6 +52,7 @@ public class DagSchedulingApp implements StreamingApplication
   @Override
   public void populateDAG(DAG dag, Configuration conf)
   {
+    dag.setAttribute(Context.DAGContext.DEBUG, true);
     SchedulerOperator scheduler = dag.addOperator("Scheduler", new SchedulerOperator());
     dag.getMeta(scheduler).getAttributes().put(OperatorContext.STATS_LISTENERS,
       Collections.<StatsListener>singletonList(new MyScheduler(conf)));

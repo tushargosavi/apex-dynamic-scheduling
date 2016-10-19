@@ -14,7 +14,6 @@ import com.google.common.collect.Maps;
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.Stats;
 import com.datatorrent.api.StatsListener;
-import com.datatorrent.api.StatsListener.StatsListenerContext;
 import com.datatorrent.stram.engine.OperatorContext;
 import com.datatorrent.stram.plan.logical.LogicalPlan;
 
@@ -24,19 +23,16 @@ import com.datatorrent.stram.plan.logical.LogicalPlan;
 public abstract class LinearDAGScheduler implements StatsListener, StatsListener.ContextAwareStatsListener
 {
   transient StatsListenerContext context;
+  long lastCheckTime;
+  long checkInterval = 30 * 1000; // 30 seconds.
+  boolean scheduleNextDag = true;
   private transient FutureTask<Object> future;
   private transient Map<Integer, List<BatchedOperatorStats>> pendingStats = Maps.newHashMap();
-  public abstract DAG.DAGChangeSet getNextDAG(int i, DAG.DAGChangeSet dag);
-
   private int currentDagId;
   private DAG.DAGChangeSet currentPendingDAG;
   private DAG.DAGChangeSet currentDAG;
 
-  @Override
-  public void setContext(StatsListenerContext context)
-  {
-    this.context = context;
-  }
+  public abstract DAG.DAGChangeSet getNextDAG(int i, DAG.DAGChangeSet dag);
 
   private void addPendingStats(BatchedOperatorStats stats)
   {
@@ -102,10 +98,6 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
 
     return null;
   }
-
-  long lastCheckTime;
-  long checkInterval = 30 * 1000; // 30 seconds.
-  boolean scheduleNextDag = true;
 
   private void monitorDagFinished()
   {
@@ -183,6 +175,12 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
   public StatsListenerContext getContext()
   {
     return context;
+  }
+
+  @Override
+  public void setContext(StatsListenerContext context)
+  {
+    this.context = context;
   }
 
   private void handleDagChangeException(Exception e)
