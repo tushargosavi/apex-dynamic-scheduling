@@ -37,4 +37,35 @@
     <name>dt.application.*.operator.*.port.*.attr.BUFFER_MEMORY_MB</name>
     <value>128</value>
   </property>
+
+  <property>
+    <name>dt.startDir</name>
+    <value>/user/tushar/sim/data</value>
+  </property>
+
+  <property>
+    <name>dt.tempOut1</name>
+    <value>/user/tushar/sim/tempOut1</value>
+  </property>
+
+  <property>
+    <name>dt.tempOut2</name>
+    <value>/user/tushar/sim/tempOut2</value>
+  </property>
+
+  <property>
+    <name>dt.outputDir</name>
+    <value>/user/tushar/sim/Output</value>
+  </property>
+
+  <property>
+    <name>dt.partitions</name>
+    <value>1</value>
+  </property>
+
+  <property>
+    <name>dt.numInputFiles</name>
+    <value>249</value>
+  </property>
+
 </configuration>

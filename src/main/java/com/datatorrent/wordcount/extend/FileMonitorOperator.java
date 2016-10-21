@@ -1,4 +1,4 @@
-package com.datatorrent.wordcount;
+package com.datatorrent.wordcount.extend;
 
 import java.io.IOException;
 import java.util.HashSet;

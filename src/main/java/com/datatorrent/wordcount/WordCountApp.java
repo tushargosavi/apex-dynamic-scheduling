@@ -9,6 +9,8 @@ import com.datatorrent.api.DAG;
 import com.datatorrent.api.StatsListener;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
+import com.datatorrent.wordcount.extend.FileMonitorOperator;
+import com.datatorrent.wordcount.extend.FileStatListenerDisconnectedDAG;
 
 @ApplicationAnnotation(name = "WordCountApp")
 public class WordCountApp implements StreamingApplication

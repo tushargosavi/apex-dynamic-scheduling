@@ -1,6 +1,7 @@
 package com.datatorrent.wordcount.lindag;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -9,6 +10,11 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
+import javax.validation.ConstraintViolationException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Maps;
 
 import com.datatorrent.api.DAG;
@@ -16,11 +22,12 @@ import com.datatorrent.api.Stats;
 import com.datatorrent.api.StatsListener;
 import com.datatorrent.stram.engine.OperatorContext;
 import com.datatorrent.stram.plan.logical.LogicalPlan;
+import com.datatorrent.wordcount.extend.FileStatListenerSameDag;
 
 /**
  * This stat listener is set on the scheduler opeartor and monitor operator.
  */
-public abstract class LinearDAGScheduler implements StatsListener, StatsListener.ContextAwareStatsListener
+public abstract class LinearDAGScheduler implements StatsListener, StatsListener.ContextAwareStatsListener, Serializable
 {
   transient StatsListenerContext context;
   long lastCheckTime;
@@ -28,7 +35,7 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
   boolean scheduleNextDag = true;
   private transient FutureTask<Object> future;
   private transient Map<Integer, List<BatchedOperatorStats>> pendingStats = Maps.newHashMap();
-  private int currentDagId;
+  private int currentDagId = 0;
   private DAG.DAGChangeSet currentPendingDAG;
   private DAG.DAGChangeSet currentDAG;
 
@@ -103,9 +110,9 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
   {
     long now = System.currentTimeMillis();
     if ((now - lastCheckTime) > checkInterval) {
-      if (context.getOperatorsCount() <= 1) {
+      //if (context.getOperatorsCount() <= 1) {
         scheduleNextDag = true;
-      }
+      //}
     }
   }
 
@@ -114,8 +121,9 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
     List<Stats.OperatorStats> lastWindowedStats = stats.getLastWindowedStats();
     for (Stats.OperatorStats oStats : lastWindowedStats) {
       if (context.getOperatorName(stats.getOperatorId()).equals("Monitor")) {
-        Boolean needsShutDown = (Boolean)oStats.metrics.get("shutDown");
+        Boolean needsShutDown = (Boolean)oStats.metrics.get("done");
         if (needsShutDown != null && needsShutDown == true) {
+          LOG.info("scheduler dag {} finished", currentDagId);
           scheduleNextDag = true;
         }
       }
@@ -130,8 +138,11 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
   {
     LogicalPlan dag = (LogicalPlan)currentPendingDAG;
     for (DAG.OperatorMeta ometa : dag.getAllOperators()) {
-      if (ometa.getName().equals("Monitor")) {
+      if (ometa.getName().startsWith("Monitor")) {
         Collection<StatsListener> oldListeners = ometa.getAttributes().get(OperatorContext.STATS_LISTENERS);
+        if (oldListeners == null) {
+          oldListeners = new ArrayList<>();
+        }
         oldListeners.add(this);
         ometa.getAttributes().put(OperatorContext.STATS_LISTENERS, oldListeners);
       }
@@ -156,18 +167,20 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
   protected void startNextDag()
   {
     DAG.DAGChangeSet undeployDag = null;
-    if (context.getOperatorsCount() > 1) {
+    //if (context.getOperatorsCount() > 1) {
+    if (currentDagId != 0) {
       undeployDag = getUndeployDag(currentDAG);
+    } else {
+      undeployDag = context.createDAG();
     }
+    //}
 
     currentPendingDAG = getNextDAG(currentDagId, undeployDag);
     updateDAG();
     try {
-      future = context.submitDagChange(currentDAG);
+      future = context.submitDagChange(currentPendingDAG);
       currentDagId++;
-    } catch (IOException e) {
-      e.printStackTrace();
-    } catch (ClassNotFoundException e) {
+    } catch (IOException | ConstraintViolationException | ClassNotFoundException e) {
       e.printStackTrace();
     }
   }
@@ -187,4 +200,7 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
   {
     System.out.println("handing error");
   }
+
+  private static final Logger LOG = LoggerFactory.getLogger(LinearDAGScheduler.class);
+
 }

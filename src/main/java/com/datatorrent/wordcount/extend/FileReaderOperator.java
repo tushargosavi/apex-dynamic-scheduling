@@ -1,4 +1,4 @@
-package com.datatorrent.wordcount;
+package com.datatorrent.wordcount.extend;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

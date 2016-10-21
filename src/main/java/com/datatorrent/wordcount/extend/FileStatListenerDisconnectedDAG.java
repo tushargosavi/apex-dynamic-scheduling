@@ -1,4 +1,4 @@
-package com.datatorrent.wordcount;
+package com.datatorrent.wordcount.extend;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -18,6 +18,7 @@ import com.datatorrent.api.StatsListener;
 import com.datatorrent.lib.algo.UniqueCounter;
 import com.datatorrent.lib.io.ConsoleOutputOperator;
 import com.datatorrent.stram.plan.logical.mod.DAGChangeSetImpl;
+import com.datatorrent.wordcount.LineSplitter;
 
 public class FileStatListenerDisconnectedDAG implements StatsListener, StatsListener.ContextAwareStatsListener, Serializable
 {

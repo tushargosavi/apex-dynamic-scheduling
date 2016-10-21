@@ -1,28 +1,39 @@
 package com.datatorrent.wordcount.lindag;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
+
+import com.esotericsoftware.kryo.DefaultSerializer;
+import com.esotericsoftware.kryo.serializers.FieldSerializer;
+import com.esotericsoftware.kryo.serializers.JavaSerializer;
 
 import com.datatorrent.api.Context;
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.StatsListener;
 import com.datatorrent.api.StreamingApplication;
+import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.stram.engine.OperatorContext;
 import com.datatorrent.wordcount.lindag.apps.AppStage1;
 import com.datatorrent.wordcount.lindag.apps.AppStage2;
 import com.datatorrent.wordcount.lindag.apps.AppStage3;
 
+@ApplicationAnnotation(name = "DagSchedulingApp")
 public class DagSchedulingApp implements StreamingApplication
 {
 
   public static class MyScheduler extends LinearDAGScheduler
   {
-    private Configuration conf;
+    private Map<String, String> properties = new HashMap<>();
 
     public MyScheduler(Configuration conf)
     {
-      this.conf = conf;
+      for (Map.Entry<String, String> entry : conf) {
+        properties.put(entry.getKey(), entry.getValue());
+      }
     }
 
     @Override
@@ -42,6 +53,10 @@ public class DagSchedulingApp implements StreamingApplication
       }
 
       if (app != null) {
+        Configuration conf = new Configuration();
+        for (Map.Entry<String, String> entry : properties.entrySet()) {
+          conf.set(entry.getKey(), entry.getValue());
+        }
         app.populateDAG(dag, conf);
       }
 

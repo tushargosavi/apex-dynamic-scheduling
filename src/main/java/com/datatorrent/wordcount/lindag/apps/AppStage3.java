@@ -15,21 +15,22 @@ public class AppStage3 implements StreamingApplication
   public void populateDAG(DAG dag, Configuration conf)
   {
 
-    FileLineInput fin = dag.addOperator("Input", new FileLineInput());
+    FileLineInput fin = dag.addOperator("Input3", new FileLineInput());
     fin.setDirectory(conf.get("dt.tempOut2"));
-    MyUniqueCounter counter = dag.addOperator("Counter", new MyUniqueCounter());
-    MyGenericFileOutputOperator out = dag.addOperator("Output", new MyGenericFileOutputOperator());
+    MyUniqueCounter counter = dag.addOperator("Counter3", new MyUniqueCounter());
+    MyGenericFileOutputOperator out = dag.addOperator("Output3", new MyGenericFileOutputOperator());
     out.setFilePath(conf.get("dt.outputDir"));
-    DefaultMonitorOperator monitor = dag.addOperator("Monitor", new DefaultMonitorOperator());
-    monitor.setExpectedItems(Integer.parseInt(conf.get("partitions")));
+    out.setOutputFileName("result_final");
+    DefaultMonitorOperator monitor = dag.addOperator("Monitor3", new DefaultMonitorOperator());
+    monitor.setExpectedItems(Integer.parseInt(conf.get("dt.partitions")));
 
     dag.addStream("words", fin.output, counter.data);
     dag.addStream("lower", counter.count, out.input);
 
     // wire in control signals
-    dag.addStream("c1", fin.doneOut, counter.doneIn);
-    dag.addStream("c2", counter.doneOut, out.doneIn);
-    dag.addStream("c3", out.doneOut, monitor.doneIn);
+    dag.addStream("c31", fin.doneOut, counter.doneIn);
+    dag.addStream("c32", counter.doneOut, out.doneIn);
+    dag.addStream("c33", out.doneOut, monitor.doneIn);
 
   }
 }
