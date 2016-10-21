@@ -94,7 +94,7 @@ public class FileStatListenerDisconnectedDAG implements StatsListener, StatsList
             counter = 0;
             idleWindows = 0;
           } catch (Exception ex) {
-            System.out.println("exception occured while changing dag");
+            LOG.error("Exception occured while changing dag");
           }
         }
       }

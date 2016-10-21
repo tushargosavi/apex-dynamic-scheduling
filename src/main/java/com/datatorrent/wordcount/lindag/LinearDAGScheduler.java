@@ -22,7 +22,8 @@ import com.datatorrent.api.Stats;
 import com.datatorrent.api.StatsListener;
 import com.datatorrent.stram.engine.OperatorContext;
 import com.datatorrent.stram.plan.logical.LogicalPlan;
-import com.datatorrent.wordcount.extend.FileStatListenerSameDag;
+
+import jline.internal.Log;
 
 /**
  * This stat listener is set on the scheduler opeartor and monitor operator.
@@ -111,7 +112,7 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
     long now = System.currentTimeMillis();
     if ((now - lastCheckTime) > checkInterval) {
       //if (context.getOperatorsCount() <= 1) {
-        scheduleNextDag = true;
+      scheduleNextDag = true;
       //}
     }
   }
@@ -198,7 +199,7 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
 
   private void handleDagChangeException(Exception e)
   {
-    System.out.println("handing error");
+    Log.error("handing error");
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(LinearDAGScheduler.class);

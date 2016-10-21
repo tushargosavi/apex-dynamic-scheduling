@@ -3,13 +3,8 @@ package com.datatorrent.wordcount.lindag;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
-
-import com.esotericsoftware.kryo.DefaultSerializer;
-import com.esotericsoftware.kryo.serializers.FieldSerializer;
-import com.esotericsoftware.kryo.serializers.JavaSerializer;
 
 import com.datatorrent.api.Context;
 import com.datatorrent.api.DAG;
@@ -50,6 +45,8 @@ public class DagSchedulingApp implements StreamingApplication
         case 2:
           app = new AppStage3();
           break;
+        default:
+          System.exit(0);
       }
 
       if (app != null) {
@@ -70,6 +67,6 @@ public class DagSchedulingApp implements StreamingApplication
     dag.setAttribute(Context.DAGContext.DEBUG, true);
     SchedulerOperator scheduler = dag.addOperator("Scheduler", new SchedulerOperator());
     dag.getMeta(scheduler).getAttributes().put(OperatorContext.STATS_LISTENERS,
-      Collections.<StatsListener>singletonList(new MyScheduler(conf)));
+        Collections.<StatsListener>singletonList(new MyScheduler(conf)));
   }
 }

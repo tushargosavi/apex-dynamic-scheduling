@@ -22,6 +22,6 @@ public class WordCountApp implements StreamingApplication
     FileMonitorOperator monitor = dag.addOperator("Monitor", new FileMonitorOperator());
     monitor.setPathStr("/user/hadoop/data");
     dag.getMeta(monitor).getAttributes().put(Context.OperatorContext.STATS_LISTENERS,
-      Arrays.<StatsListener>asList(new FileStatListenerDisconnectedDAG()));
+        Arrays.<StatsListener>asList(new FileStatListenerDisconnectedDAG()));
   }
 }
