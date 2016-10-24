@@ -29,8 +29,6 @@ import com.datatorrent.stram.plan.logical.LogicalPlan;
 public abstract class LinearDAGScheduler implements StatsListener, StatsListener.ContextAwareStatsListener, Serializable
 {
   transient StatsListenerContext context;
-  long lastCheckTime;
-  long checkInterval = 30 * 1000; // 30 seconds.
   boolean scheduleNextDag = true;
   private transient FutureTask<Object> future;
   private transient Map<Integer, List<BatchedOperatorStats>> pendingStats = Maps.newHashMap();
@@ -63,7 +61,7 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
       }
 
       try {
-        Object ret = future.get();
+        future.get();
         currentDAG = currentPendingDAG;
         currentPendingDAG = null;
         currentDagId++;
@@ -106,16 +104,6 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
     }
 
     return null;
-  }
-
-  private void monitorDagFinished()
-  {
-    long now = System.currentTimeMillis();
-    if ((now - lastCheckTime) > checkInterval) {
-      //if (context.getOperatorsCount() <= 1) {
-      scheduleNextDag = true;
-      //}
-    }
   }
 
   private Response processOperatorStats(BatchedOperatorStats stats)
@@ -174,13 +162,11 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
   {
     LOG.info("scheduling dag {}", currentDagId);
     DAG.DAGChangeSet undeployDag = null;
-    //if (context.getOperatorsCount() > 1) {
     if (currentDagId != 0) {
       undeployDag = getUndeployDag(currentDAG);
     } else {
       undeployDag = context.createDAG();
     }
-    //}
 
     currentPendingDAG = getNextDAG(currentDagId, undeployDag);
     if (currentPendingDAG == null) {
@@ -195,11 +181,6 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
     } catch (IOException | ConstraintViolationException | ClassNotFoundException e) {
       handleDagChangeException(e);
     }
-  }
-
-  public StatsListenerContext getContext()
-  {
-    return context;
   }
 
   @Override
