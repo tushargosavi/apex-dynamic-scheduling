@@ -45,7 +45,10 @@ public class DagSchedulingApp implements StreamingApplication
         case 2:
           app = new AppStage3();
           break;
+        case 3:
+          return null;
         default:
+          // should not reach here.
           System.exit(0);
       }
 

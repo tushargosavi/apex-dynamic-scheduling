@@ -23,8 +23,6 @@ import com.datatorrent.api.StatsListener;
 import com.datatorrent.stram.engine.OperatorContext;
 import com.datatorrent.stram.plan.logical.LogicalPlan;
 
-import jline.internal.Log;
-
 /**
  * This stat listener is set on the scheduler opeartor and monitor operator.
  */
@@ -185,12 +183,17 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
     //}
 
     currentPendingDAG = getNextDAG(currentDagId, undeployDag);
+    if (currentPendingDAG == null) {
+      undeployDag.removeOperator("Scheduler");
+      currentPendingDAG = undeployDag;
+      LOG.info("Application completed successfully ");
+    }
     updateDAG();
     try {
       future = context.submitDagChange(currentPendingDAG);
       LOG.info("submitted dag {} to engine dag {}", currentDagId, currentPendingDAG);
     } catch (IOException | ConstraintViolationException | ClassNotFoundException e) {
-      e.printStackTrace();
+      handleDagChangeException(e);
     }
   }
 
@@ -207,7 +210,8 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
 
   private void handleDagChangeException(Exception e)
   {
-    Log.error("handing error");
+    e.printStackTrace();
+    System.exit(0);
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(LinearDAGScheduler.class);
