@@ -25,8 +25,8 @@ public class AppStage1 implements StreamingApplication
     monitor.setExpectedItems(Integer.parseInt(conf.get("dt.numInputFiles")));
 
     // dat connections.
-    dag.addStream("lines", fin.output, splitter.input);
-    dag.addStream("words", splitter.out, out.input);
+    dag.addStream("lines1", fin.output, splitter.input);
+    dag.addStream("words1", splitter.out, out.input);
 
     // wire in control tuples
     dag.addStream("c11", fin.doneOut, splitter.doneIn);

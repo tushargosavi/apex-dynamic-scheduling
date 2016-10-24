@@ -24,8 +24,8 @@ public class AppStage3 implements StreamingApplication
     DefaultMonitorOperator monitor = dag.addOperator("Monitor3", new DefaultMonitorOperator());
     monitor.setExpectedItems(Integer.parseInt(conf.get("dt.partitions")));
 
-    dag.addStream("words", fin.output, counter.data);
-    dag.addStream("lower", counter.count, out.input);
+    dag.addStream("words3", fin.output, counter.data);
+    dag.addStream("counter3", counter.count, out.input);
 
     // wire in control signals
     dag.addStream("c31", fin.doneOut, counter.doneIn);

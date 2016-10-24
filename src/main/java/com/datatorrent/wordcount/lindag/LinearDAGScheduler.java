@@ -69,12 +69,14 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
         currentDAG = currentPendingDAG;
         currentPendingDAG = null;
         currentDagId++;
+        scheduleNextDag = false;
         future = null;
       } catch (ExecutionException e) {
         handleDagChangeException(e);
       } catch (InterruptedException e) {
         handleDagChangeException(e);
       }
+      return null;
     }
 
     /** start the initial dag */
@@ -84,6 +86,7 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
     }
 
     // normal processing of events.
+    addPendingStats(stats);
     return processPendingStats(stats.getOperatorId());
   }
 
@@ -121,7 +124,7 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
   {
     List<Stats.OperatorStats> lastWindowedStats = stats.getLastWindowedStats();
     for (Stats.OperatorStats oStats : lastWindowedStats) {
-      if (context.getOperatorName(stats.getOperatorId()).equals("Monitor")) {
+      if (context.getOperatorName(stats.getOperatorId()).startsWith("Monitor")) {
         Boolean needsShutDown = (Boolean)oStats.metrics.get("done");
         if (needsShutDown != null && needsShutDown == true) {
           LOG.info("scheduler dag {} finished", currentDagId);
@@ -140,6 +143,7 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
     LogicalPlan dag = (LogicalPlan)currentPendingDAG;
     for (DAG.OperatorMeta ometa : dag.getAllOperators()) {
       if (ometa.getName().startsWith("Monitor")) {
+        LOG.info("Found monitor operator updating its stats listeners");
         Collection<StatsListener> oldListeners = ometa.getAttributes().get(OperatorContext.STATS_LISTENERS);
         if (oldListeners == null) {
           oldListeners = new ArrayList<>();
@@ -152,21 +156,25 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
 
   protected DAG.DAGChangeSet getUndeployDag(DAG.DAGChangeSet idag)
   {
+    LOG.info("preparing undeploy dag for {}", idag);
     LogicalPlan dag = (LogicalPlan)idag;
     DAG.DAGChangeSet undeployDag = context.createDAG();
-    // add instructions to remove all operators
-    for (DAG.OperatorMeta ometa : dag.getAllOperators()) {
-      undeployDag.removeOperator(ometa.getName());
-    }
+
     // add instruction to remove all streams
     for (DAG.StreamMeta smeta : dag.getAllStreams()) {
       undeployDag.removeStream(smeta.getName());
+    }
+
+    // add instructions to remove all operators
+    for (DAG.OperatorMeta ometa : dag.getAllOperators()) {
+      undeployDag.removeOperator(ometa.getName());
     }
     return undeployDag;
   }
 
   protected void startNextDag()
   {
+    LOG.info("scheduling dag {}", currentDagId);
     DAG.DAGChangeSet undeployDag = null;
     //if (context.getOperatorsCount() > 1) {
     if (currentDagId != 0) {
@@ -180,7 +188,7 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
     updateDAG();
     try {
       future = context.submitDagChange(currentPendingDAG);
-      currentDagId++;
+      LOG.info("submitted dag {} to engine dag {}", currentDagId, currentPendingDAG);
     } catch (IOException | ConstraintViolationException | ClassNotFoundException e) {
       e.printStackTrace();
     }
@@ -203,5 +211,11 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(LinearDAGScheduler.class);
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException
+  {
+    in.defaultReadObject();
+    pendingStats = Maps.newHashMap();
+  }
 
 }

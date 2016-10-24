@@ -24,12 +24,12 @@ public class AppStage2 implements StreamingApplication
     monitor.setExpectedItems(Integer.parseInt(conf.get("dt.partitions")));
 
     // data connections.
-    dag.addStream("words", fin.output, modifier.input);
-    dag.addStream("lower", modifier.out, out.input);
+    dag.addStream("words2", fin.output, modifier.input);
+    dag.addStream("lower2", modifier.out, out.input);
 
     // control signals to determinte the EOD (End of DAG)
     dag.addStream("c21", fin.doneOut, modifier.doneIn);
     dag.addStream("c22", modifier.doneOut, out.doneIn);
-    dag.addStream("c33", out.doneOut, monitor.doneIn);
+    dag.addStream("c23", out.doneOut, monitor.doneIn);
   }
 }

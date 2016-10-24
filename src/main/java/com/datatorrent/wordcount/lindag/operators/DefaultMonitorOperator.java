@@ -1,9 +1,13 @@
 package com.datatorrent.wordcount.lindag.operators;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datatorrent.api.AutoMetric;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.Operator;
 import com.datatorrent.common.util.BaseOperator;
+import com.datatorrent.wordcount.lindag.LinearDAGScheduler;
 
 public class DefaultMonitorOperator extends BaseOperator implements Operator.CheckpointNotificationListener
 {
@@ -17,7 +21,9 @@ public class DefaultMonitorOperator extends BaseOperator implements Operator.Che
     public void process(String tuple)
     {
       doneItems++;
+      LOG.info("received control signal {} wid {}", doneItems, currentWindowId);
       if (doneItems >= expectedItems) {
+        LOG.info("received all control tuples in tuples {} wid {}", doneItems, doneWindowId);
         doneWindowId = currentWindowId;
       }
     }
@@ -68,9 +74,12 @@ public class DefaultMonitorOperator extends BaseOperator implements Operator.Che
   public void committed(long windowId)
   {
     if (doneWindowId != 0 && windowId > doneWindowId) {
+      LOG.info("All control signal received , turning on off signal");
       done = true;
     }
   }
+
+  private static final Logger LOG = LoggerFactory.getLogger(LinearDAGScheduler.class);
 
   @Override
   public void beforeCheckpoint(long windowId)
