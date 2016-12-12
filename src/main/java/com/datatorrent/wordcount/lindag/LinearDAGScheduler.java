@@ -26,7 +26,7 @@ import com.datatorrent.stram.plan.logical.LogicalPlan;
 /**
  * This stat listener is set on the scheduler opeartor and monitor operator.
  */
-public abstract class LinearDAGScheduler implements StatsListener, StatsListener.ContextAwareStatsListener, Serializable
+public abstract class LinearDAGScheduler implements StatsListener, StatsListener.StatsListenerWithContext, Serializable
 {
   transient StatsListenerContext context;
   boolean scheduleNextDag = true;
@@ -47,6 +47,13 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
       pendingStats.put(id, oldStats);
     }
     oldStats.add(stats);
+  }
+
+  @Override
+  public Response processStats(BatchedOperatorStats stats, StatsListenerContext statsListenerContext)
+  {
+    context = statsListenerContext;
+    return processStats(stats);
   }
 
   @Override
@@ -181,12 +188,6 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
     } catch (IOException | ConstraintViolationException | ClassNotFoundException e) {
       handleDagChangeException(e);
     }
-  }
-
-  @Override
-  public void setContext(StatsListenerContext context)
-  {
-    this.context = context;
   }
 
   private void handleDagChangeException(Exception e)

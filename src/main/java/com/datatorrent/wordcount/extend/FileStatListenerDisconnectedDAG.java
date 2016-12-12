@@ -20,7 +20,7 @@ import com.datatorrent.lib.io.ConsoleOutputOperator;
 import com.datatorrent.stram.plan.logical.mod.DAGChangeSetImpl;
 import com.datatorrent.wordcount.LineSplitter;
 
-public class FileStatListenerDisconnectedDAG implements StatsListener, StatsListener.ContextAwareStatsListener, Serializable
+public class FileStatListenerDisconnectedDAG implements StatsListener.StatsListenerWithContext, Serializable
 {
   private static final Logger LOG = LoggerFactory.getLogger(FileStatListenerDisconnectedDAG.class);
   private transient StatsListenerContext context;
@@ -33,9 +33,10 @@ public class FileStatListenerDisconnectedDAG implements StatsListener, StatsList
   }
 
   @Override
-  public void setContext(StatsListenerContext context)
+  public Response processStats(BatchedOperatorStats stats, StatsListenerContext statsListenerContext)
   {
-    this.context = context;
+    context = statsListenerContext;
+    return processStats(stats);
   }
 
   DAGChangeSetImpl getWordCountDag()
