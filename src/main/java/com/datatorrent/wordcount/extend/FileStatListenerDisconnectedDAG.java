@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.FutureTask;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,12 +11,12 @@ import org.slf4j.LoggerFactory;
 import org.apache.apex.malhar.lib.fs.LineByLineFileInputOperator;
 
 import com.datatorrent.api.Context;
+import com.datatorrent.api.DAG.DAGChangeTransaction;
 import com.datatorrent.api.Operator;
 import com.datatorrent.api.Stats;
 import com.datatorrent.api.StatsListener;
 import com.datatorrent.lib.algo.UniqueCounter;
 import com.datatorrent.lib.io.ConsoleOutputOperator;
-import com.datatorrent.stram.plan.logical.mod.DAGChangeSetImpl;
 import com.datatorrent.wordcount.LineSplitter;
 
 public class FileStatListenerDisconnectedDAG implements StatsListener.StatsListenerWithContext, Serializable
@@ -39,9 +38,9 @@ public class FileStatListenerDisconnectedDAG implements StatsListener.StatsListe
     return processStats(stats);
   }
 
-  DAGChangeSetImpl getWordCountDag()
+  DAGChangeTransaction getWordCountDag()
   {
-    DAGChangeSetImpl dag = (DAGChangeSetImpl)context.createDAG();
+    DAGChangeTransaction dag = context.startDAGChangeTransaction();
     LineByLineFileInputOperator reader = dag.addOperator("Reader", new LineByLineFileInputOperator());
     List<StatsListener> listeners = new ArrayList<>();
     listeners.add(this);
@@ -56,9 +55,9 @@ public class FileStatListenerDisconnectedDAG implements StatsListener.StatsListe
     return dag;
   }
 
-  DAGChangeSetImpl undeployDag()
+  DAGChangeTransaction undeployDag()
   {
-    DAGChangeSetImpl dag = new DAGChangeSetImpl();
+    DAGChangeTransaction dag = context.startDAGChangeTransaction();
     dag.removeStream("s3");
     dag.removeOperator("Output");
     dag.removeStream("s2");
@@ -91,7 +90,7 @@ public class FileStatListenerDisconnectedDAG implements StatsListener.StatsListe
         if (value != null && value > 100 && !dagStarted && counter > 40) {
           try {
             dagStarted = true;
-            FutureTask<Object> o = context.submitDagChange(getWordCountDag());
+            context.commit(getWordCountDag());
             counter = 0;
             idleWindows = 0;
           } catch (Exception ex) {
@@ -107,14 +106,8 @@ public class FileStatListenerDisconnectedDAG implements StatsListener.StatsListe
         LOG.info("Reader idle window found {}", idleWindows);
         if (idleWindows >= 120) {
           LOG.info("No data read for last {} windows, removing dagChanges", idleWindows);
-          try {
-            idleWindows = 0;
-            FutureTask<Object> o = context.submitDagChange(undeployDag());
-          } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-          } catch (IOException e) {
-            e.printStackTrace();
-          }
+          idleWindows = 0;
+          context.commit(undeployDag());
         }
       } else {
         idleWindows = 0;

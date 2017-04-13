@@ -22,6 +22,7 @@ public class ExtendApp implements StreamingApplication
   {
     reader = dag.addOperator("Reader", new FileReaderOperator());
     reader.setDirectory("/user/hadoop/data");
-    dag.getMeta(reader).getAttributes().put(Context.OperatorContext.STATS_LISTENERS, Arrays.<StatsListener>asList(new FileStatListenerSameDag()));
+    dag.getMeta(reader).getAttributes().put(Context.OperatorContext.STATS_LISTENERS,
+        Arrays.<StatsListener>asList(new FileStatListenerSameDag()));
   }
 }

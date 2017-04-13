@@ -12,6 +12,7 @@ public class FileLineInput extends LineByLineFileInputOperator
 {
   public transient DefaultOutputPort<String> doneOut = new DefaultOutputPort<>();
   String fileName;
+  boolean directoryScanned = false;
 
   @Override
   protected InputStream openFile(Path path) throws IOException
@@ -20,10 +21,27 @@ public class FileLineInput extends LineByLineFileInputOperator
     return super.openFile(path);
   }
 
+
   @Override
   protected void closeFile(InputStream is) throws IOException
   {
     super.closeFile(is);
     doneOut.emit(fileName);
+  }
+
+  @Override
+  public void endWindow()
+  {
+    super.endWindow();
+    if (directoryScanned && pendingFileCount.longValue() == 0) {
+      throw new ShutdownException();
+    }
+  }
+
+  @Override
+  protected void scanDirectory()
+  {
+    super.scanDirectory();
+    directoryScanned = true;
   }
 }

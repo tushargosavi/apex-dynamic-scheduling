@@ -6,12 +6,12 @@ import java.io.Serializable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datatorrent.api.DAG;
 import com.datatorrent.api.Operator;
 import com.datatorrent.api.Stats;
 import com.datatorrent.api.StatsListener;
 import com.datatorrent.lib.algo.UniqueCounter;
 import com.datatorrent.lib.io.ConsoleOutputOperator;
-import com.datatorrent.stram.plan.logical.mod.DAGChangeSetImpl;
 import com.datatorrent.wordcount.LineSplitter;
 
 public class FileStatListenerSameDag implements StatsListener.StatsListenerWithContext, Serializable
@@ -34,22 +34,22 @@ public class FileStatListenerSameDag implements StatsListener.StatsListenerWithC
     return processStats(stats);
   }
 
-  DAGChangeSetImpl extendWordCountDAG()
+  DAG.DAGChangeTransaction extendWordCountDAG()
   {
-    DAGChangeSetImpl dag = (DAGChangeSetImpl)context.createDAG();
+    DAG.DAGChangeTransaction dag = (DAG.DAGChangeTransaction)context.startDAGChangeTransaction();
     LineSplitter splitter = dag.addOperator("Splitter", new LineSplitter());
     UniqueCounter<String> counter = dag.addOperator("Counter", new UniqueCounter<String>());
     ConsoleOutputOperator out = dag.addOperator("Output", new ConsoleOutputOperator());
-
-    dag.addStream("s1", "Reader", "output", splitter.input);
+    FileReaderOperator operator = (FileReaderOperator)dag.getOperatorMeta("Reader").getOperator();
+    dag.addStream("s1", operator.output, splitter.input);
     dag.addStream("s2", splitter.words, counter.data);
     dag.addStream("s3", counter.count, out.input);
     return dag;
   }
 
-  DAGChangeSetImpl undeployDag()
+  DAG.DAGChangeTransaction undeployDag()
   {
-    DAGChangeSetImpl dag = new DAGChangeSetImpl();
+    DAG.DAGChangeTransaction dag = context.startDAGChangeTransaction();
     for (String s : new String[]{"s1", "s2", "s3"}) {
       dag.removeStream(s);
     }
@@ -76,16 +76,10 @@ public class FileStatListenerSameDag implements StatsListener.StatsListenerWithC
         LOG.info("stats received for {} pendingFiles {} counter {}", stats.getOperatorId(), value, counter);
         /** If new files are detected, and dag is not already started, attach data processing operators */
         if (value != null && value > 10 && !dagStarted && counter > 40) {
-          try {
-            dagStarted = true;
-            context.submitDagChange(extendWordCountDAG());
-            counter = 0;
-            idleWindows = 0;
-          } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-          } catch (IOException e) {
-            e.printStackTrace();
-          }
+          dagStarted = true;
+          context.commit(extendWordCountDAG());
+          counter = 0;
+          idleWindows = 0;
         }
 
         if (stats.getTuplesEmittedPSMA() > 0) {
