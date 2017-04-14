@@ -81,6 +81,6 @@ public class DagSchedulingApp implements StreamingApplication
     dag.setAttribute(Context.DAGContext.DEBUG, true);
     SchedulerOperator scheduler = dag.addOperator("Scheduler", new SchedulerOperator());
     dag.getMeta(scheduler).getAttributes().put(OperatorContext.STATS_LISTENERS,
-        Collections.<StatsListener>singletonList(new MyScheduler(conf)));
+        Collections.<StatsListener>singletonList(new AppBasedLinearDAGScheduler(conf, AppStage1.class, AppStage2.class, AppStage3.class)));
   }
 }
