@@ -1,18 +1,17 @@
-package com.datatorrent.wordcount.extend;
+package com.datatorrent.wordcount.statslisteners;
 
-import java.io.IOException;
 import java.io.Serializable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datatorrent.api.DAG;
-import com.datatorrent.api.Operator;
 import com.datatorrent.api.Stats;
 import com.datatorrent.api.StatsListener;
 import com.datatorrent.lib.algo.UniqueCounter;
 import com.datatorrent.lib.io.ConsoleOutputOperator;
-import com.datatorrent.wordcount.LineSplitter;
+import com.datatorrent.wordcount.operators.FileReaderOperator;
+import com.datatorrent.wordcount.operators.LineSplitter;
 
 public class FileStatListenerSameDag implements StatsListener.StatsListenerWithContext, Serializable
 {
@@ -34,22 +33,22 @@ public class FileStatListenerSameDag implements StatsListener.StatsListenerWithC
     return processStats(stats);
   }
 
-  DAG.DAGChangeTransaction extendWordCountDAG()
+  DAG extendWordCountDAG()
   {
-    DAG.DAGChangeTransaction dag = (DAG.DAGChangeTransaction)context.startDAGChangeTransaction();
+    DAG dag = context.startDAGChangeTransaction();
     LineSplitter splitter = dag.addOperator("Splitter", new LineSplitter());
     UniqueCounter<String> counter = dag.addOperator("Counter", new UniqueCounter<String>());
     ConsoleOutputOperator out = dag.addOperator("Output", new ConsoleOutputOperator());
     FileReaderOperator operator = (FileReaderOperator)dag.getOperatorMeta("Reader").getOperator();
     dag.addStream("s1", operator.output, splitter.input);
-    dag.addStream("s2", splitter.words, counter.data);
+    dag.addStream("s2", splitter.out, counter.data);
     dag.addStream("s3", counter.count, out.input);
     return dag;
   }
 
-  DAG.DAGChangeTransaction undeployDag()
+  DAG undeployDag()
   {
-    DAG.DAGChangeTransaction dag = context.startDAGChangeTransaction();
+    DAG dag = context.startDAGChangeTransaction();
     for (String s : new String[]{"s1", "s2", "s3"}) {
       dag.removeStream(s);
     }
@@ -90,41 +89,21 @@ public class FileStatListenerSameDag implements StatsListener.StatsListenerWithC
         /** IF application is idle for 120 invocation of stats listener,
          * remove the data processing operators.
          */
-//        if (stats.getTuplesEmittedPSMA() == 0 && dagDeployed) {
-//          idleWindows++;
-//          LOG.info("Reader idle window found {}", idleWindows);
-//          if (idleWindows >= 120) {
-//            LOG.info("No data read for last {} windows, removing dagChanges", idleWindows);
-//            try {
-//              idleWindows = 0;
-//              context.submitDagChange(undeployDag());
-//              dagDeployed = false;
-//              dagStarted = false;
-//            } catch (ClassNotFoundException e) {
-//              e.printStackTrace();
-//            } catch (IOException e) {
-//              e.printStackTrace();
-//            }
-//          }
-//        } else {
-//          idleWindows = 0;
-//        }
+        if (stats.getTuplesEmittedPSMA() == 0 && dagDeployed) {
+          idleWindows++;
+          LOG.info("Reader idle window found {}", idleWindows);
+          if (idleWindows >= 120) {
+            LOG.info("No data read for last {} windows, removing dagChanges", idleWindows);
+            idleWindows = 0;
+            context.commit(undeployDag());
+            dagDeployed = false;
+            dagStarted = false;
+          }
+        } else {
+          idleWindows = 0;
+        }
       }
     }
     return null;
-  }
-
-  static class ResetOperatorRequest implements OperatorRequest
-  {
-    private static final Logger LOG = LoggerFactory.getLogger(FileStatListenerSameDag.class);
-
-    @Override
-    public OperatorResponse execute(Operator operator, int operatorId, long windowId) throws IOException
-    {
-      LOG.info("ResetOperator request called {} id {} windowId {}", operator, operatorId, windowId);
-      FileMonitorOperator fm = (FileMonitorOperator)operator;
-      fm.handleCommand();
-      return null;
-    }
   }
 }

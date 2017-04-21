@@ -1,6 +1,5 @@
-package com.datatorrent.wordcount.extend;
+package com.datatorrent.wordcount.statslisteners;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,13 +10,12 @@ import org.slf4j.LoggerFactory;
 import org.apache.apex.malhar.lib.fs.LineByLineFileInputOperator;
 
 import com.datatorrent.api.Context;
-import com.datatorrent.api.DAG.DAGChangeTransaction;
-import com.datatorrent.api.Operator;
+import com.datatorrent.api.DAG;
 import com.datatorrent.api.Stats;
 import com.datatorrent.api.StatsListener;
 import com.datatorrent.lib.algo.UniqueCounter;
 import com.datatorrent.lib.io.ConsoleOutputOperator;
-import com.datatorrent.wordcount.LineSplitter;
+import com.datatorrent.wordcount.operators.LineSplitter;
 
 public class FileStatListenerDisconnectedDAG implements StatsListener.StatsListenerWithContext, Serializable
 {
@@ -38,26 +36,26 @@ public class FileStatListenerDisconnectedDAG implements StatsListener.StatsListe
     return processStats(stats);
   }
 
-  DAGChangeTransaction getWordCountDag()
+  DAG getWordCountDag()
   {
-    DAGChangeTransaction dag = context.startDAGChangeTransaction();
+    DAG dag = context.startDAGChangeTransaction();
     LineByLineFileInputOperator reader = dag.addOperator("Reader", new LineByLineFileInputOperator());
     List<StatsListener> listeners = new ArrayList<>();
     listeners.add(this);
     dag.getMeta(reader).getAttributes().put(Context.OperatorContext.STATS_LISTENERS, listeners);
-    reader.setDirectory("/user/hadoop/data");
+    reader.setDirectory("/user/tushar/data");
     LineSplitter splitter = dag.addOperator("Splitter", new LineSplitter());
     UniqueCounter<String> counter = dag.addOperator("Counter", new UniqueCounter<String>());
     ConsoleOutputOperator out = dag.addOperator("Output", new ConsoleOutputOperator());
     dag.addStream("s1", reader.output, splitter.input);
-    dag.addStream("s2", splitter.words, counter.data);
+    dag.addStream("s2", splitter.out, counter.data);
     dag.addStream("s3", counter.count, out.input);
     return dag;
   }
 
-  DAGChangeTransaction undeployDag()
+  DAG undeployDag()
   {
-    DAGChangeTransaction dag = context.startDAGChangeTransaction();
+    DAG dag = context.startDAGChangeTransaction();
     dag.removeStream("s3");
     dag.removeOperator("Output");
     dag.removeStream("s2");
@@ -87,14 +85,14 @@ public class FileStatListenerDisconnectedDAG implements StatsListener.StatsListe
       for (Stats.OperatorStats ws : stats.getLastWindowedStats()) {
         Integer value = (Integer)ws.metrics.get("pendingFiles");
         LOG.info("stats received for {} pendingFiles {} counter {}", stats.getOperatorId(), value, counter);
-        if (value != null && value > 100 && !dagStarted && counter > 40) {
+        if (value != null && value > 20 && !dagStarted && counter > 40) {
           try {
             dagStarted = true;
             context.commit(getWordCountDag());
             counter = 0;
             idleWindows = 0;
           } catch (Exception ex) {
-            LOG.error("Exception occured while changing dag");
+            LOG.error("Exception occurred while changing dag");
           }
         }
       }
@@ -114,19 +112,5 @@ public class FileStatListenerDisconnectedDAG implements StatsListener.StatsListe
       }
     }
     return null;
-  }
-
-  static class ResetOperatorRequest implements OperatorRequest
-  {
-    private static final Logger LOG = LoggerFactory.getLogger(FileStatListenerDisconnectedDAG.class);
-
-    @Override
-    public OperatorResponse execute(Operator operator, int operatorId, long windowId) throws IOException
-    {
-      LOG.info("ResetOperator request called {} id {} windowId {}", operator, operatorId, windowId);
-      FileMonitorOperator fm = (FileMonitorOperator)operator;
-      fm.handleCommand();
-      return null;
-    }
   }
 }

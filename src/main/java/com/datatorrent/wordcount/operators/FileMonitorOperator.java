@@ -1,4 +1,4 @@
-package com.datatorrent.wordcount.extend;
+package com.datatorrent.wordcount.operators;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -85,11 +85,6 @@ public class FileMonitorOperator extends BaseOperator implements InputOperator
   public void setScanInterval(long scanInterval)
   {
     this.scanInterval = scanInterval;
-  }
-
-  public void handleCommand()
-  {
-    LOG.info("Handling operator command");
   }
 
   class ScanTask extends TimerTask

@@ -1,12 +1,12 @@
-package com.datatorrent.wordcount.lindag.apps;
+package com.datatorrent.wordcount.apps.subapps;
 
 import org.apache.hadoop.conf.Configuration;
 
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.StreamingApplication;
-import com.datatorrent.wordcount.lindag.operators.FileLineInput;
-import com.datatorrent.wordcount.lindag.operators.LineOutputOperator;
-import com.datatorrent.wordcount.lindag.operators.WordModifier;
+import com.datatorrent.wordcount.operators.FileLineInput;
+import com.datatorrent.wordcount.operators.LineOutputOperator;
+import com.datatorrent.wordcount.operators.WordModifier;
 
 public class AppStage2 implements StreamingApplication
 {
@@ -23,9 +23,5 @@ public class AppStage2 implements StreamingApplication
     // data connections.
     dag.addStream("words2", fin.output, modifier.input);
     dag.addStream("lower2", modifier.out, out.input);
-
-    // control signals to determinte the EOD (End of DAG)
-    dag.addStream("c21", fin.doneOut, modifier.doneIn);
-    dag.addStream("c22", modifier.doneOut, out.doneIn);
   }
 }

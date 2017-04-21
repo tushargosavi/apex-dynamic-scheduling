@@ -1,4 +1,4 @@
-package com.datatorrent.wordcount.lindag.operators;
+package com.datatorrent.wordcount.operators;
 
 import java.io.IOException;
 import java.io.InputStream;

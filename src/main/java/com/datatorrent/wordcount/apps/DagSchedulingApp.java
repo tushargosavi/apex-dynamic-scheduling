@@ -1,10 +1,6 @@
-package com.datatorrent.wordcount.lindag;
+package com.datatorrent.wordcount.apps;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.slf4j.Logger;
 
 import org.apache.hadoop.conf.Configuration;
 
@@ -14,11 +10,11 @@ import com.datatorrent.api.StatsListener;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.stram.engine.OperatorContext;
-import com.datatorrent.wordcount.lindag.apps.AppStage1;
-import com.datatorrent.wordcount.lindag.apps.AppStage2;
-import com.datatorrent.wordcount.lindag.apps.AppStage3;
-
-import static org.slf4j.LoggerFactory.getLogger;
+import com.datatorrent.wordcount.apps.subapps.AppStage1;
+import com.datatorrent.wordcount.apps.subapps.AppStage2;
+import com.datatorrent.wordcount.apps.subapps.AppStage3;
+import com.datatorrent.wordcount.operators.SchedulerOperator;
+import com.datatorrent.wordcount.statslisteners.AppBasedLinearDAGScheduler;
 
 @ApplicationAnnotation(name = "DagSchedulingApp")
 public class DagSchedulingApp implements StreamingApplication
@@ -29,7 +25,6 @@ public class DagSchedulingApp implements StreamingApplication
     dag.setAttribute(Context.DAGContext.DEBUG, true);
     SchedulerOperator scheduler = dag.addOperator("Scheduler", new SchedulerOperator());
     dag.getMeta(scheduler).getAttributes().put(OperatorContext.STATS_LISTENERS,
-        Collections.<StatsListener>singletonList(new AppBasedLinearDAGScheduler(
-          conf, AppStage1.class, AppStage2.class, AppStage3.class)));
+        Collections.<StatsListener>singletonList(new AppBasedLinearDAGScheduler(conf, AppStage1.class, AppStage2.class, AppStage3.class)));
   }
 }

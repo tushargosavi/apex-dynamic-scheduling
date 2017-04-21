@@ -1,4 +1,4 @@
-package com.datatorrent.wordcount.lindag;
+package com.datatorrent.wordcount.operators;
 
 import com.datatorrent.api.InputOperator;
 import com.datatorrent.common.util.BaseOperator;

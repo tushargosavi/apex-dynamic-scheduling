@@ -1,4 +1,4 @@
-package com.datatorrent.wordcount.lindag;
+package com.datatorrent.wordcount.statslisteners;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -9,9 +9,6 @@ import org.apache.hadoop.conf.Configuration;
 
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.StreamingApplication;
-import com.datatorrent.wordcount.lindag.apps.AppStage1;
-import com.datatorrent.wordcount.lindag.apps.AppStage2;
-import com.datatorrent.wordcount.lindag.apps.AppStage3;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -30,7 +27,7 @@ public class AppBasedLinearDAGScheduler extends LinearDAGScheduler
     applications = klass;
   }
 
-  private static final Logger LOG = getLogger(DagSchedulingApp.MyScheduler.class);
+  private static final Logger LOG = getLogger(AppBasedLinearDAGScheduler.class);
 
   @Override
   public boolean populateNextDAG(DAG dag)
@@ -43,7 +40,6 @@ public class AppBasedLinearDAGScheduler extends LinearDAGScheduler
     try {
       app = applications[index].newInstance();
     } catch (IllegalAccessException | InstantiationException e) {
-      app = null;
       // force application stop.
       return true;
     }

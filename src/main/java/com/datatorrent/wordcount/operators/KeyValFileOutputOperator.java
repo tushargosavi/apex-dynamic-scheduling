@@ -1,23 +1,12 @@
-package com.datatorrent.wordcount.lindag.operators;
+package com.datatorrent.wordcount.operators;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import com.datatorrent.api.DefaultInputPort;
-import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.lib.io.fs.AbstractFileOutputOperator;
 
-public class MyGenericFileOutputOperator extends AbstractFileOutputOperator<HashMap<String, Integer>>
+public class KeyValFileOutputOperator extends AbstractFileOutputOperator<HashMap<String, Integer>>
 {
-  public transient DefaultOutputPort<String> doneOut = new DefaultOutputPort<>();
-  public transient DefaultInputPort<String> doneIn = new DefaultInputPort<String>()
-  {
-    @Override
-    public void process(String tuple)
-    {
-      doneOut.emit(tuple);
-    }
-  };
   private String outputFileName;
 
   @Override

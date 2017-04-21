@@ -1,4 +1,4 @@
-package com.datatorrent.wordcount.lindag;
+package com.datatorrent.wordcount.statslisteners;
 
 import java.io.Serializable;
 
@@ -11,12 +11,11 @@ import com.datatorrent.api.DAG;
 import com.datatorrent.api.StatsListener;
 
 /**
- * This stat listener is set on the scheduler opeartor and monitor operator.
+ * This stat listener is set on the scheduler operator and monitor operator.
  */
 public abstract class LinearDAGScheduler implements StatsListener, StatsListener.StatsListenerWithContext, Serializable
 {
   private int currentDagId = 0;
-  private DAG.DAGChangeTransaction currentDAG = null;
   private final String SCHEDULER_OPERATOR_NAME = "Scheduler";
 
   @Override
@@ -41,7 +40,7 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
   protected void startNextDag(StatsListenerContext context)
   {
     LOG.info("scheduling dag {}", currentDagId);
-    DAG.DAGChangeTransaction dag = context.startDAGChangeTransaction();
+    DAG dag = context.startDAGChangeTransaction();
 
     for (DAG.StreamMeta smeta : dag.getAllStreamsMeta()) {
       dag.removeStream(smeta.getName());
@@ -56,7 +55,7 @@ public abstract class LinearDAGScheduler implements StatsListener, StatsListener
 
     boolean end = populateNextDAG(dag);
     if (end) {
-      LOG.info("End of dag removing schedulear operator ");
+      LOG.info("End of dag removing scheduler operator ");
       dag.removeOperator(SCHEDULER_OPERATOR_NAME);
     }
     try {
