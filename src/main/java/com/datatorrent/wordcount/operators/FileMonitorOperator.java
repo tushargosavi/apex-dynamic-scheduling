@@ -18,11 +18,10 @@ import com.datatorrent.api.AutoMetric;
 import com.datatorrent.api.Context;
 import com.datatorrent.api.InputOperator;
 import com.datatorrent.common.util.BaseOperator;
-import com.datatorrent.stram.plan.physical.PlanModifier;
 
 public class FileMonitorOperator extends BaseOperator implements InputOperator
 {
-  private static final Logger LOG = LoggerFactory.getLogger(PlanModifier.class);
+  private static final Logger LOG = LoggerFactory.getLogger(FileMonitorOperator.class);
   private String pathStr;
   @AutoMetric
   private int pendingFiles;

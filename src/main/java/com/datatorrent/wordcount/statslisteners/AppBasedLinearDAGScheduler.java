@@ -21,6 +21,9 @@ public class AppBasedLinearDAGScheduler extends LinearDAGScheduler
 
   public AppBasedLinearDAGScheduler(Configuration conf, Class<? extends StreamingApplication> ... klass)
   {
+    if (conf == null) {
+      conf = new Configuration();
+    }
     for (Map.Entry<String, String> entry : conf) {
       properties.put(entry.getKey(), entry.getValue());
     }

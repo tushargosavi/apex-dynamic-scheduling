@@ -23,16 +23,16 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.datatorrent.testapps</groupId>
-  <artifactId>testapps</artifactId>
+  <artifactId>apex-dynamic-scheduling-demo</artifactId>
   <packaging>jar</packaging>
 
-  <name>Apache Apex Test Demo Apps</name>
-  <description>Apex demo applications</description>
+  <name>Apache Apex Dynamic scheduling Test App Demo</name>
+  <description>Apex application to demonstrate dynamic scheduling</description>
 
   <parent>
     <groupId>org.apache.apex</groupId>
-    <artifactId>malhar-demos</artifactId>
-    <version>3.6.0-SNAPSHOT</version>
+    <artifactId>malhar-examples</artifactId>
+    <version>3.8.0-SNAPSHOT</version>
   </parent>
 
   <dependencies>
@@ -50,6 +50,12 @@
     <dependency>
       <groupId>org.apache.apex</groupId>
       <artifactId>apex-engine</artifactId>
+      <version>3.6.0-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.apex</groupId>
+      <artifactId>apex-common</artifactId>
       <version>3.6.0-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
